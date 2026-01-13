@@ -310,27 +310,118 @@ def eliminacion_gaussiana(A: np.ndarray) -> np.ndarray:
     return solucion
 
 # ####################################################################
-def calcular_Ux (U: np.ndarray, x: np.ndarray) -> np.ndarray:
-    """Calcula el producto de una matriz triangular superior U por un vector x.
+def calcular_matriz_vector(A: np.ndarray, x: np.ndarray) -> np.ndarray:
+    """Calcula el producto de una matriz A por un vector x.
 
     ## Parameters
 
-    ``U``: matriz triangular superior de tamaño n-by-n.
+    ``A``: matriz de tamaño m-by-n.
 
     ``x``: vector de tamaño n.
 
     ## Return
 
-    ``Ux``: resultado del producto U * x.
+    ``b``: vector resultante del producto Ax, de tamaño m.
 
     """
-    n = U.shape[0]
-    Ux = np.zeros((n, 1), dtype=float)
+    if not isinstance(A, np.ndarray):
+        logging.debug("Convirtiendo A a numpy array.")
+        A = np.array(A, dtype=float)
+    if not isinstance(x, np.ndarray):
+        logging.debug("Convirtiendo x a numpy array.")
+        x = np.array(x, dtype=float)
+
+    assert A.shape[1] == x.shape[0], "Las dimensiones de A y x no son compatibles para la multiplicación."
+
+    b = np.zeros((A.shape[0], 1), dtype=float)
+
+    for i in range(A.shape[0]):
+        suma = 0
+        for j in range(A.shape[1]):
+            suma += A[i, j] * x[j]
+        b[i] = suma
+
+    return b
+
+def calcular_Ly_b_sustitucion_adelante(L: np.ndarray, b: np.ndarray) -> np.ndarray:
+    """Calcula el producto de una matriz L por un vector b utilizando sustitución hacia adelante.
+
+    ## Parameters
+
+    ``L``: matriz triangular inferior de tamaño n-by-n.
+
+    ``b``: vector de tamaño n.
+
+    ## Return
+
+    ``y``: vector resultante del producto Lb, de tamaño n.
+
+    """
+    if not isinstance(L, np.ndarray):
+        logging.debug("Convirtiendo L a numpy array.")
+        L = np.array(L, dtype=float)
+    if not isinstance(b, np.ndarray):
+        logging.debug("Convirtiendo b a numpy array.")
+        b = np.array(b, dtype=float)
+
+    n = L.shape[0]
+    y = np.zeros((n, 1), dtype=float)
 
     for i in range(n):
         suma = 0
-        for j in range(i + 1):
-            suma += U[i, j] * x[j]
-        Ux[i] = suma
+        for j in range(i):
+            suma += L[i, j] * y[j]
+        y[i] = (b[i] - suma) / L[i, i]
 
-    return Ux
+    return y
+
+def sustitucion_atras_Ux_y(U: np.ndarray, y: np.ndarray) -> np.ndarray:
+    """Calcula el producto de una matriz U por un vector y utilizando sustitución hacia atrás.
+
+    ## Parameters
+
+    ``U``: matriz triangular superior de tamaño n-by-n.
+
+    ``y``: vector de tamaño n.
+
+    ## Return
+
+    ``x``: vector resultante del producto Uy, de tamaño n.
+
+    """
+    if not isinstance(U, np.ndarray):
+        logging.debug("Convirtiendo U a numpy array.")
+        U = np.array(U, dtype=float)
+    if not isinstance(y, np.ndarray):
+        logging.debug("Convirtiendo y a numpy array.")
+        y = np.array(y, dtype=float)
+
+    n = U.shape[0]
+    x = np.zeros((n, 1), dtype=float)
+
+    x[-1] = y[-1] / U[-1, -1]
+
+    for i in range(n - 2, -1, -1):
+        suma = 0
+        for j in range(i + 1, n):
+            suma += U[i, j] * x[j]
+        x[i] = (y[i] - suma) / U[i, i]
+
+    return x
+
+def definiendo_Ux_y(U: np.ndarray, y: np.ndarray) -> np.ndarray:
+    """Define la relación Ux = y para una matriz U y un vector y.
+
+    ## Parameters
+
+    ``U``: matriz triangular superior de tamaño n-by-n.
+
+    ``y``: vector de tamaño n.
+
+    ## Return
+
+    ``x``: vector resultante que satisface la ecuación Ux = y, de tamaño n.
+
+    """
+    x = sustitucion_atras_Ux_y(U, y)
+    return x
